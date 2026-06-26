@@ -61,16 +61,23 @@ def search():
 
 
 def search_tiktok(hashtag: str, count: int = 20) -> dict:
-    """Busca vídeos virais no TikTok por hashtag via RapidAPI."""
-    url = "https://tiktok-scraper7.p.rapidapi.com/hashtag/posts"
+    """Busca vídeos virais no TikTok por palavra-chave via RapidAPI."""
+    url = "https://tiktok-scraper7.p.rapidapi.com/feed/search"
     headers = {
         "X-RapidAPI-Key": RAPIDAPI_KEY,
         "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com"
     }
-    params = {"name": hashtag, "count": str(count)}
+    params = {
+        "keywords": hashtag,
+        "count": str(count),
+        "cursor": "0",
+        "region": "BR",
+        "publish_time": "0",
+        "sort_type": "0"
+    }
 
     try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        resp = requests.get(url, headers=headers, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
 
@@ -79,20 +86,22 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
 
         for item in raw_videos:
             author = item.get("author", {})
+            stats = item.get("statistics", {})
+            video_info = item.get("video", {})
             videos.append({
                 "platform": "TikTok",
                 "platform_icon": "tiktok",
-                "id": item.get("video_id", ""),
-                "description": item.get("title", "Sem descrição")[:200],
-                "likes": item.get("digg_count", 0),
-                "views": item.get("play_count", 0),
-                "comments": item.get("comment_count", 0),
-                "shares": item.get("share_count", 0),
-                "thumbnail": item.get("cover", ""),
-                "url": f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{item.get('video_id', '')}",
+                "id": item.get("aweme_id", ""),
+                "description": item.get("desc", "Sem descrição")[:200],
+                "likes": stats.get("digg_count", 0),
+                "views": stats.get("play_count", 0),
+                "comments": stats.get("comment_count", 0),
+                "shares": stats.get("share_count", 0),
+                "thumbnail": video_info.get("cover", {}).get("url_list", [""])[0],
+                "url": f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{item.get('aweme_id', '')}",
                 "author": author.get("nickname", ""),
                 "author_handle": f"@{author.get('unique_id', '')}",
-                "duration": item.get("duration", 0),
+                "duration": video_info.get("duration", 0) // 1000,
             })
 
         # Ordenar por curtidas
