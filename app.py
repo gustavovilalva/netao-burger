@@ -141,10 +141,10 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
 
 def search_instagram(hashtag: str, count: int = 20) -> dict:
     """Busca posts/reels do Instagram por hashtag via RapidAPI."""
-    url = "https://instagram-scraper-api2.p.rapidapi.com/v1/hashtag"
+    url = "https://instagram-scraper-stable-api.p.rapidapi.com/v1/hashtag"
     headers = {
         "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "instagram-scraper-api2.p.rapidapi.com"
+        "X-RapidAPI-Host": "instagram-scraper-stable-api.p.rapidapi.com"
     }
     params = {"hashtag": hashtag}
 
