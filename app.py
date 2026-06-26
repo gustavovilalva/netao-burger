@@ -139,7 +139,7 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
                 "comments": comments,
                 "shares":   shares,
                 "thumbnail": thumbnail,
-                "url": f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{item.get('aweme_id', '')}",
+                "url": f"https://vm.tiktok.com/t/{item.get('aweme_id', '')}/" if not author.get('unique_id') else f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{item.get('aweme_id', '')}",
                 "author": author.get("nickname", ""),
                 "author_handle": f"@{author.get('unique_id', '')}",
                 "duration": duration,
