@@ -141,7 +141,7 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
             comments = stats.get("comment_count",  item.get("comment_count", 0))
             shares   = stats.get("share_count",    item.get("share_count",   0))
 
-            # Thumbnail: tenta múltiplos caminhos
+            # Thumbnail e URL de reprodução direta
             video_info = item.get("video", {})
             cover = video_info.get("cover", {})
             if isinstance(cover, dict):
@@ -153,6 +153,16 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
                 thumbnail = ""
             if not thumbnail:
                 thumbnail = item.get("cover", "")
+
+            # URL direta de reprodução (mp4)
+            play_addr = video_info.get("play_addr", {})
+            if isinstance(play_addr, dict):
+                play_list = play_addr.get("url_list", [])
+                play_url = play_list[0] if play_list else ""
+            elif isinstance(play_addr, str):
+                play_url = play_addr
+            else:
+                play_url = item.get("play_url", item.get("download_url", ""))
 
             # Duração
             duration_raw = video_info.get("duration", item.get("duration", 0))
@@ -185,6 +195,7 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
                 "shares":   shares,
                 "thumbnail": thumbnail,
                 "url": share_url,
+                "play_url": play_url,
                 "author": author.get("nickname", ""),
                 "author_handle": f"@{unique_id}",
                 "duration": duration,
