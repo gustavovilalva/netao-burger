@@ -22,6 +22,24 @@ def index():
     return render_template("index.html", hashtags=DEFAULT_HASHTAGS)
 
 
+@app.route("/api/debug/instagram")
+def debug_instagram():
+    """Mostra resposta bruta da API do Instagram para debug."""
+    hashtag = request.args.get("hashtag", "burger")
+    if not RAPIDAPI_KEY:
+        return jsonify({"error": "Sem API key"}), 400
+    url = "https://instagram-scraper-stable-api.p.rapidapi.com/search_hashtag.php"
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "instagram-scraper-stable-api.p.rapidapi.com"
+    }
+    try:
+        resp = requests.get(url, headers=headers, params={"hashtag": hashtag}, timeout=15)
+        return jsonify({"status": resp.status_code, "raw": resp.json()})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 @app.route("/api/search")
 def search():
     platform = request.args.get("platform", "tiktok")
