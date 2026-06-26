@@ -86,22 +86,45 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
 
         for item in raw_videos:
             author = item.get("author", {})
+
+            # Stats: tenta objeto aninhado ou direto no item
             stats = item.get("statistics", {})
+            likes    = stats.get("digg_count",    item.get("digg_count",    0))
+            views    = stats.get("play_count",     item.get("play_count",    0))
+            comments = stats.get("comment_count",  item.get("comment_count", 0))
+            shares   = stats.get("share_count",    item.get("share_count",   0))
+
+            # Thumbnail: tenta múltiplos caminhos
             video_info = item.get("video", {})
+            cover = video_info.get("cover", {})
+            if isinstance(cover, dict):
+                url_list = cover.get("url_list", [])
+                thumbnail = url_list[0] if url_list else ""
+            elif isinstance(cover, str):
+                thumbnail = cover
+            else:
+                thumbnail = ""
+            if not thumbnail:
+                thumbnail = item.get("cover", "")
+
+            # Duração
+            duration_raw = video_info.get("duration", item.get("duration", 0))
+            duration = duration_raw // 1000 if duration_raw > 1000 else duration_raw
+
             videos.append({
                 "platform": "TikTok",
                 "platform_icon": "tiktok",
                 "id": item.get("aweme_id", ""),
                 "description": item.get("desc", "Sem descrição")[:200],
-                "likes": stats.get("digg_count", 0),
-                "views": stats.get("play_count", 0),
-                "comments": stats.get("comment_count", 0),
-                "shares": stats.get("share_count", 0),
-                "thumbnail": video_info.get("cover", {}).get("url_list", [""])[0],
+                "likes":    likes,
+                "views":    views,
+                "comments": comments,
+                "shares":   shares,
+                "thumbnail": thumbnail,
                 "url": f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{item.get('aweme_id', '')}",
                 "author": author.get("nickname", ""),
                 "author_handle": f"@{author.get('unique_id', '')}",
-                "duration": video_info.get("duration", 0) // 1000,
+                "duration": duration,
             })
 
         # Ordenar por curtidas
