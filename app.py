@@ -2,18 +2,18 @@ import os
 import requests
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 
 load_dotenv()
 
 app = Flask(__name__)
 
-RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY", "")
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
 
-# Hashtags padrão relacionadas a hamburgueria
 DEFAULT_HASHTAGS = [
     "hamburgueria", "hamburguer", "burger", "smashburger",
-    "artesanal", "lanche", "foodporn", "burgersofinstagram",
-    "hamburguerartesanal", "burgerlovers"
+    "lanche", "foodporn", "hamburguerartesanal", "burgerlovers",
+    "burgerbrasil", "comida"
 ]
 
 
@@ -22,270 +22,124 @@ def index():
     return render_template("index.html", hashtags=DEFAULT_HASHTAGS)
 
 
-@app.route("/api/debug/tiktok")
-def debug_tiktok():
-    """Mostra campos disponíveis no primeiro vídeo da API do TikTok."""
-    hashtag = request.args.get("hashtag", "burger")
-    if not RAPIDAPI_KEY:
-        return jsonify({"error": "Sem API key"}), 400
-    url = "https://tiktok-scraper7.p.rapidapi.com/feed/search"
-    headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com"
-    }
-    params = {"keywords": hashtag, "count": "3", "cursor": "0", "region": "BR", "publish_time": "0", "sort_type": "0"}
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=15)
-        data = resp.json()
-        videos = data.get("data", {}).get("videos", [])
-        # Retorna apenas o primeiro vídeo com todos os campos para debug
-        first = videos[0] if videos else {}
-        return jsonify({
-            "aweme_id": first.get("aweme_id"),
-            "share_url": first.get("share_url"),
-            "author_unique_id": first.get("author", {}).get("unique_id"),
-            "video_share_url": first.get("video", {}).get("share_url"),
-            "all_keys": list(first.keys())
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-
-@app.route("/api/debug/instagram")
-def debug_instagram():
-    """Mostra resposta bruta da API do Instagram para debug."""
-    hashtag = request.args.get("hashtag", "burger")
-    if not RAPIDAPI_KEY:
-        return jsonify({"error": "Sem API key"}), 400
-    url = "https://instagram-scraper-stable-api.p.rapidapi.com/search_hashtag.php"
-    headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "instagram-scraper-stable-api.p.rapidapi.com"
-    }
-    try:
-        resp = requests.get(url, headers=headers, params={"hashtag": hashtag}, timeout=15)
-        return jsonify({"status": resp.status_code, "raw": resp.json()})
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-
 @app.route("/api/search")
 def search():
-    platform = request.args.get("platform", "tiktok")
-    hashtag = request.args.get("hashtag", "hamburgueria").strip().lstrip("#")
-    count = int(request.args.get("count", 20))
+    query    = request.args.get("hashtag", "hamburgueria").strip().lstrip("#")
+    sort_by  = request.args.get("sort", "viewCount")   # viewCount | date | relevance
+    count    = min(int(request.args.get("count", 20)), 50)
 
-    if not RAPIDAPI_KEY:
+    if not YOUTUBE_API_KEY:
         return jsonify({
-            "error": "API key não configurada. Siga as instruções no README para obter sua chave gratuita.",
+            "error": "Chave do YouTube não configurada. Adicione YOUTUBE_API_KEY no Render.",
             "videos": []
         }), 400
 
-    if platform == "tiktok":
-        return jsonify(search_tiktok(hashtag, count))
-    elif platform == "instagram":
-        return jsonify(search_instagram(hashtag, count))
-    elif platform == "both":
-        tiktok = search_tiktok(hashtag, count // 2)
-        instagram = search_instagram(hashtag, count // 2)
+    return jsonify(search_youtube(query, sort_by, count))
 
-        all_videos = tiktok.get("videos", []) + instagram.get("videos", [])
-        all_videos.sort(key=lambda x: x.get("likes", 0), reverse=True)
 
-        errors = []
-        if tiktok.get("error"):
-            errors.append(f"TikTok: {tiktok['error']}")
-        if instagram.get("error"):
-            errors.append(f"Instagram: {instagram['error']}")
+def search_youtube(query: str, sort_by: str = "viewCount", count: int = 20) -> dict:
+    """Busca vídeos/Shorts no YouTube por palavra-chave."""
 
-        return jsonify({
-            "videos": all_videos,
-            "total": len(all_videos),
-            "errors": errors if errors else None
+    # 1️⃣ Busca os vídeos
+    search_url = "https://www.googleapis.com/youtube/v3/search"
+    search_params = {
+        "key": YOUTUBE_API_KEY,
+        "q": query,
+        "part": "snippet",
+        "type": "video",
+        "videoDuration": "short",       # Shorts e vídeos curtos (< 4 min)
+        "order": sort_by,
+        "maxResults": count,
+        "relevanceLanguage": "pt",
+        "regionCode": "BR",
+        "publishedAfter": "2025-01-01T00:00:00Z",  # Apenas 2025/2026
+        "safeSearch": "none",
+    }
+
+    try:
+        resp = requests.get(search_url, params=search_params, timeout=10)
+        resp.raise_for_status()
+        search_data = resp.json()
+    except requests.exceptions.HTTPError as e:
+        if resp.status_code == 403:
+            return {"videos": [], "error": "Chave do YouTube inválida ou cota esgotada."}
+        return {"videos": [], "error": f"Erro HTTP {resp.status_code}: {str(e)}"}
+    except Exception as e:
+        return {"videos": [], "error": str(e)}
+
+    items = search_data.get("items", [])
+    if not items:
+        return {"videos": [], "total": 0, "hashtag": query}
+
+    # 2️⃣ Busca estatísticas (likes, views) dos vídeos encontrados
+    video_ids = [i["id"]["videoId"] for i in items if i.get("id", {}).get("videoId")]
+    stats_map = {}
+    if video_ids:
+        stats_url = "https://www.googleapis.com/youtube/v3/videos"
+        stats_params = {
+            "key": YOUTUBE_API_KEY,
+            "id": ",".join(video_ids),
+            "part": "statistics,contentDetails",
+        }
+        try:
+            stats_resp = requests.get(stats_url, params=stats_params, timeout=10)
+            for v in stats_resp.json().get("items", []):
+                stats_map[v["id"]] = {
+                    "views":    int(v.get("statistics", {}).get("viewCount",    0)),
+                    "likes":    int(v.get("statistics", {}).get("likeCount",   0)),
+                    "comments": int(v.get("statistics", {}).get("commentCount", 0)),
+                }
+        except Exception:
+            pass
+
+    # 3️⃣ Monta a lista de vídeos
+    videos = []
+    for item in items:
+        vid_id   = item.get("id", {}).get("videoId", "")
+        snippet  = item.get("snippet", {})
+        stats    = stats_map.get(vid_id, {})
+
+        # Thumbnail — maior disponível
+        thumbs   = snippet.get("thumbnails", {})
+        thumb    = (thumbs.get("maxres") or thumbs.get("high") or thumbs.get("medium") or {}).get("url", "")
+
+        # Data de publicação
+        pub_raw  = snippet.get("publishedAt", "")
+        try:
+            pub_date = datetime.fromisoformat(pub_raw.replace("Z", "+00:00")).strftime("%d/%m/%Y")
+        except Exception:
+            pub_date = ""
+
+        # URL — Shorts se for curto, senão watch normal
+        video_url = f"https://www.youtube.com/shorts/{vid_id}"
+
+        videos.append({
+            "platform":     "YouTube",
+            "id":           vid_id,
+            "title":        snippet.get("title", ""),
+            "description":  snippet.get("description", "")[:200],
+            "author":       snippet.get("channelTitle", ""),
+            "author_url":   f"https://www.youtube.com/channel/{snippet.get('channelId', '')}",
+            "thumbnail":    thumb,
+            "url":          video_url,
+            "views":        stats.get("views",    0),
+            "likes":        stats.get("likes",    0),
+            "comments":     stats.get("comments", 0),
+            "pub_date":     pub_date,
         })
+
+    # Ordenar localmente pelo critério escolhido
+    if sort_by == "viewCount":
+        videos.sort(key=lambda x: x["views"], reverse=True)
+    elif sort_by == "date":
+        pass  # já vem ordenado pela API
     else:
-        return jsonify({"error": "Plataforma inválida", "videos": []}), 400
+        pass
 
-
-def search_tiktok(hashtag: str, count: int = 20) -> dict:
-    """Busca vídeos virais no TikTok por palavra-chave via RapidAPI."""
-    url = "https://tiktok-scraper7.p.rapidapi.com/feed/search"
-    headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com"
-    }
-    params = {
-        "keywords": hashtag,
-        "count": str(count),
-        "cursor": "0",
-        "region": "BR",
-        "publish_time": "180",  # últimos 6 meses
-        "sort_type": "1"        # ordenar por curtidas
-    }
-
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-
-        videos = []
-        raw_videos = data.get("data", {}).get("videos", [])
-
-        for item in raw_videos:
-            author = item.get("author", {})
-
-            # Stats: tenta objeto aninhado ou direto no item
-            stats = item.get("statistics", {})
-            likes    = stats.get("digg_count",    item.get("digg_count",    0))
-            views    = stats.get("play_count",     item.get("play_count",    0))
-            comments = stats.get("comment_count",  item.get("comment_count", 0))
-            shares   = stats.get("share_count",    item.get("share_count",   0))
-
-            # Thumbnail e URL de reprodução direta
-            video_info = item.get("video", {})
-            cover = video_info.get("cover", {})
-            if isinstance(cover, dict):
-                url_list = cover.get("url_list", [])
-                thumbnail = url_list[0] if url_list else ""
-            elif isinstance(cover, str):
-                thumbnail = cover
-            else:
-                thumbnail = ""
-            if not thumbnail:
-                thumbnail = item.get("cover", "")
-
-            # URL direta de reprodução (mp4)
-            play_addr = video_info.get("play_addr", {})
-            if isinstance(play_addr, dict):
-                play_list = play_addr.get("url_list", [])
-                play_url = play_list[0] if play_list else ""
-            elif isinstance(play_addr, str):
-                play_url = play_addr
-            else:
-                play_url = item.get("play_url", item.get("download_url", ""))
-
-            # Duração
-            duration_raw = video_info.get("duration", item.get("duration", 0))
-            duration = duration_raw // 1000 if duration_raw > 1000 else duration_raw
-
-            # URL: usa o formato mais estável do TikTok
-            aweme_id = item.get("aweme_id", "")
-            unique_id = author.get("unique_id", "")
-            share_url = (
-                item.get("share_url") or
-                f"https://www.tiktok.com/@{unique_id}/video/{aweme_id}"
-            )
-
-            # Data de publicação
-            create_time = item.get("create_time", 0)
-            from datetime import datetime
-            try:
-                pub_date = datetime.fromtimestamp(create_time).strftime("%d/%m/%Y") if create_time else ""
-            except Exception:
-                pub_date = ""
-
-            videos.append({
-                "platform": "TikTok",
-                "platform_icon": "tiktok",
-                "id": aweme_id,
-                "description": item.get("desc", "Sem descrição")[:200],
-                "likes":    likes,
-                "views":    views,
-                "comments": comments,
-                "shares":   shares,
-                "thumbnail": thumbnail,
-                "url": share_url,
-                "play_url": play_url,
-                "author": author.get("nickname", ""),
-                "author_handle": f"@{unique_id}",
-                "duration": duration,
-                "pub_date": pub_date,
-            })
-
-        # Ordenar por curtidas
-        videos.sort(key=lambda x: x["likes"], reverse=True)
-        return {"videos": videos, "total": len(videos), "hashtag": hashtag}
-
-    except requests.exceptions.HTTPError as e:
-        if resp.status_code == 429:
-            return {"videos": [], "error": "Limite de requisições atingido. Tente novamente amanhã."}
-        return {"videos": [], "error": f"Erro HTTP {resp.status_code}: {str(e)}"}
-    except Exception as e:
-        return {"videos": [], "error": str(e)}
-
-
-def search_instagram(hashtag: str, count: int = 20) -> dict:
-    """Busca posts/reels do Instagram por hashtag via RapidAPI."""
-    url = "https://instagram-scraper-stable-api.p.rapidapi.com/search_hashtag.php"
-    headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "instagram-scraper-stable-api.p.rapidapi.com"
-    }
-    params = {"hashtag": hashtag}
-
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-
-        videos = []
-        items = data.get("data", {}).get("items", [])
-
-        for item in items:
-            # Apenas vídeos/reels (media_type 2 = vídeo)
-            if item.get("media_type") not in [2, 8]:
-                # Incluir também carrosséis que podem ter vídeo
-                caption_obj = item.get("caption")
-                caption = caption_obj.get("text", "") if caption_obj else ""
-                # Pegar qualquer mídia para ter mais resultados
-                like_count = item.get("like_count", 0)
-                if like_count < 100:
-                    continue
-
-            caption_obj = item.get("caption")
-            caption = caption_obj.get("text", "") if caption_obj else ""
-
-            # Thumbnail
-            thumbnail = ""
-            img_versions = item.get("image_versions2", {})
-            candidates = img_versions.get("candidates", [])
-            if candidates:
-                thumbnail = candidates[0].get("url", "")
-
-            user = item.get("user", {})
-            code = item.get("code", "")
-
-            videos.append({
-                "platform": "Instagram",
-                "platform_icon": "instagram",
-                "id": item.get("id", ""),
-                "description": caption[:200] if caption else "Sem legenda",
-                "likes": item.get("like_count", 0),
-                "views": item.get("play_count", item.get("view_count", 0)),
-                "comments": item.get("comment_count", 0),
-                "shares": 0,
-                "thumbnail": thumbnail,
-                "url": f"https://www.instagram.com/p/{code}/",
-                "author": user.get("full_name", user.get("username", "")),
-                "author_handle": f"@{user.get('username', '')}",
-                "duration": item.get("video_duration", 0),
-            })
-
-            if len(videos) >= count:
-                break
-
-        videos.sort(key=lambda x: x["likes"], reverse=True)
-        return {"videos": videos, "total": len(videos), "hashtag": hashtag}
-
-    except requests.exceptions.HTTPError as e:
-        if resp.status_code == 429:
-            return {"videos": [], "error": "Limite de requisições atingido. Tente novamente amanhã."}
-        return {"videos": [], "error": f"Erro HTTP {resp.status_code}: {str(e)}"}
-    except Exception as e:
-        return {"videos": [], "error": str(e)}
+    return {"videos": videos, "total": len(videos), "hashtag": query}
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"\n🍔 Burger Viral App rodando em: http://localhost:{port}\n")
+    print(f"\n🍔 Burger Viral rodando em: http://localhost:{port}\n")
     app.run(debug=True, host="0.0.0.0", port=port)
