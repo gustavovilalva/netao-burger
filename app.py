@@ -53,7 +53,6 @@ def search_youtube(query: str, sort_by: str = "viewCount", count: int = 20) -> d
         "relevanceLanguage": "pt",
         "regionCode": "BR",
         "publishedAfter": "2025-01-01T00:00:00Z",  # Apenas 2025/2026
-        "safeSearch": "none",
     }
 
     try:
