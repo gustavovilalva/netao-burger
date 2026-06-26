@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🍔 Burger Viral — Encontre vídeos virais para copiar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --accent: #ff6b00;
+      --accent2: #ff9500;
+      --text: #f0f0f0;
+      --muted: #888;
+      --tiktok: #010101;
+      --instagram: #c13584;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1a0a00 0%, #0f0f0f 60%);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo {
+      font-size: 2rem;
+      line-height: 1;
+    }
+    .header-text h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-text p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── SEARCH BAR ──────────────────────────────────── */
+    .search-section {
+      padding: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .search-input-wrap .hash {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      color: var(--accent);
+      font-weight: 700;
+      pointer-events: none;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px 12px 30px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    .platform-select {
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .platform-select:focus { border-color: var(--accent); }
+
+    .sort-select {
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-search {
+      padding: 12px 28px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      white-space: nowrap;
+    }
+    .btn-search:hover { opacity: .9; }
+    .btn-search:active { transform: scale(.98); }
+    .btn-search:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Hashtags sugeridas */
+    .hashtag-suggestions {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .suggestions-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .chip:hover {
+      background: #2e1a00;
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+
+    /* ── RESULTS ─────────────────────────────────────── */
+    .results-section {
+      padding: 0 32px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .results-count {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .results-count span { color: var(--accent); font-weight: 700; }
+
+    /* Estado vazio/loading */
+    .state-box {
+      text-align: center;
+      padding: 64px 32px;
+      color: var(--muted);
+    }
+    .state-box .icon { font-size: 3rem; margin-bottom: 16px; display: block; }
+    .state-box h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 8px; }
+    .state-box p { font-size: 0.9rem; }
+
+    /* Grid de vídeos */
+    .videos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    /* Card */
+    .video-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform .2s, border-color .2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .video-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+    }
+
+    .card-thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9/6;
+      background: var(--surface2);
+      overflow: hidden;
+    }
+    .card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .thumb-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      background: var(--surface2);
+    }
+    .platform-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: .3px;
+    }
+    .platform-badge.tiktok {
+      background: rgba(1,1,1,.85);
+      color: #fff;
+      border: 1px solid #333;
+    }
+    .platform-badge.instagram {
+      background: linear-gradient(135deg, #833ab4, #c13584, #e1306c);
+      color: #fff;
+    }
+    .duration-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,.75);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 14px 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: #fff;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .author-info .name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .author-info .handle {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .card-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-stats {
+      display: flex;
+      gap: 14px;
+    }
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .stat .val {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-icon { font-size: 0.9rem; }
+
+    .btn-view {
+      display: block;
+      text-align: center;
+      padding: 9px 0;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--accent2);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-view:hover {
+      background: #2e1a00;
+      border-color: var(--accent);
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,.15);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error banner */
+    .error-banner {
+      background: #2d0000;
+      border: 1px solid #8b0000;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #ff8080;
+    }
+
+    /* API key hint */
+    .api-hint {
+      background: #1a1200;
+      border: 1px solid #5a4500;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+      color: #d4a800;
+      line-height: 1.7;
+    }
+    .api-hint strong { color: var(--accent2); }
+    .api-hint a { color: var(--accent2); }
+
+    @media (max-width: 640px) {
+      header { padding: 16px; }
+      .search-section, .results-section { padding: 16px; }
+      .search-row { gap: 8px; }
+      .btn-search { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🍔</div>
+  <div class="header-text">
+    <h1>Burger Viral</h1>
+    <p>Encontre os vídeos mais virais para replicar no Instagram da sua hamburgueria</p>
+  </div>
+</header>
+
+<div class="search-section">
+  <div class="search-card">
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <span class="hash">#</span>
+        <input type="text" id="hashtagInput" placeholder="hamburgueria" value="hamburgueria"/>
+      </div>
+      <select class="platform-select" id="platformSelect">
+        <option value="tiktok">📱 TikTok</option>
+        <option value="instagram">📷 Instagram</option>
+        <option value="both">🔀 Ambos</option>
+      </select>
+      <select class="sort-select" id="sortSelect">
+        <option value="likes">❤️ Curtidas</option>
+        <option value="views">👁 Visualizações</option>
+        <option value="comments">💬 Comentários</option>
+      </select>
+      <button class="btn-search" id="btnSearch" onclick="doSearch()">Buscar</button>
+    </div>
+
+    <div class="hashtag-suggestions">
+      <span class="suggestions-label">Sugestões:</span>
+      {% for tag in hashtags %}
+      <button class="chip" onclick="useHashtag('{{ tag }}')">{{ tag }}</button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="results-section">
+  <div id="statusArea"></div>
+  <div id="resultsHeader" class="results-header" style="display:none">
+    <div class="results-count">Exibindo <span id="countNum">0</span> vídeos para <span id="countTag" style="color:var(--muted)"></span></div>
+  </div>
+  <div id="videoGrid" class="videos-grid"></div>
+</div>
+
+<script>
+  let allVideos = [];
+
+  function useHashtag(tag) {
+    document.getElementById('hashtagInput').value = tag;
+    doSearch();
+  }
+
+  function formatNum(n) {
+    if (!n || n === 0) return '0';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  function formatDuration(secs) {
+    if (!secs || secs === 0) return '';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function getInitial(name) {
+    return (name || '?').charAt(0).toUpperCase();
+  }
+
+  function renderCard(v) {
+    const thumbHtml = v.thumbnail
+      ? `<img src="${v.thumbnail}" alt="thumb" loading="lazy" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>🍔</div>'">`
+      : `<div class="thumb-placeholder">🍔</div>`;
+
+    const dur = formatDuration(v.duration);
+    const badgeClass = v.platform === 'TikTok' ? 'tiktok' : 'instagram';
+    const icon = v.platform === 'TikTok' ? '▶ TikTok' : '📷 Instagram';
+
+    return `
+    <div class="video-card">
+      <div class="card-thumb">
+        ${thumbHtml}
+        <span class="platform-badge ${badgeClass}">${icon}</span>
+        ${dur ? `<span class="duration-badge">${dur}</span>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="card-author">
+          <div class="avatar">${getInitial(v.author || v.author_handle)}</div>
+          <div class="author-info">
+            <div class="name">${v.author || 'Desconhecido'}</div>
+            <div class="handle">${v.author_handle || ''}</div>
+          </div>
+        </div>
+        <div class="card-desc">${v.description || ''}</div>
+        <div class="card-stats">
+          <div class="stat"><span class="stat-icon">❤️</span> <span class="val">${formatNum(v.likes)}</span></div>
+          <div class="stat"><span class="stat-icon">👁</span> <span class="val">${formatNum(v.views)}</span></div>
+          <div class="stat"><span class="stat-icon">💬</span> <span class="val">${formatNum(v.comments)}</span></div>
+          ${v.shares ? `<div class="stat"><span class="stat-icon">↗️</span> <span class="val">${formatNum(v.shares)}</span></div>` : ''}
+        </div>
+        <a class="btn-view" href="${v.url}" target="_blank" rel="noopener">Ver vídeo original →</a>
+      </div>
+    </div>`;
+  }
+
+  function sortVideos(videos) {
+    const by = document.getElementById('sortSelect').value;
+    return [...videos].sort((a, b) => (b[by] || 0) - (a[by] || 0));
+  }
+
+  function renderGrid(videos) {
+    const grid = document.getElementById('videoGrid');
+    if (!videos.length) {
+      grid.innerHTML = `<div class="state-box" style="grid-column:1/-1">
+        <span class="icon">🔍</span>
+        <h3>Nenhum vídeo encontrado</h3>
+        <p>Tente outra hashtag ou plataforma</p>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = sortVideos(videos).map(renderCard).join('');
+  }
+
+  document.getElementById('sortSelect').addEventListener('change', () => {
+    if (allVideos.length) renderGrid(allVideos);
+  });
+
+  document.getElementById('hashtagInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  async function doSearch() {
+    const hashtag = document.getElementById('hashtagInput').value.trim().replace(/^#/, '') || 'hamburgueria';
+    const platform = document.getElementById('platformSelect').value;
+    const btn = document.getElementById('btnSearch');
+    const status = document.getElementById('statusArea');
+    const grid = document.getElementById('videoGrid');
+    const header = document.getElementById('resultsHeader');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Buscando...';
+    status.innerHTML = '';
+    grid.innerHTML = '';
+    header.style.display = 'none';
+    allVideos = [];
+
+    try {
+      const res = await fetch(`/api/search?platform=${platform}&hashtag=${encodeURIComponent(hashtag)}&count=30`);
+      const data = await res.json();
+
+      if (data.error && !data.videos?.length) {
+        status.innerHTML = `<div class="error-banner">⚠️ ${data.error}</div>`;
+        grid.innerHTML = `<div class="state-box" style="grid-column:1/-1">
+          <span class="icon">🔑</span>
+          <h3>Configure sua API Key</h3>
+          <p>Veja as instruções no arquivo <strong>README.md</strong> do projeto</p>
+        </div>`;
+        return;
+      }
+
+      if (data.errors?.length) {
+        status.innerHTML = data.errors.map(e =>
+          `<div class="error-banner">⚠️ ${e}</div>`
+        ).join('');
+      }
+
+      allVideos = data.videos || [];
+      document.getElementById('countNum').textContent = allVideos.length;
+      document.getElementById('countTag').textContent = `#${hashtag}`;
+      header.style.display = 'flex';
+      renderGrid(allVideos);
+
+    } catch (err) {
+      status.innerHTML = `<div class="error-banner">⚠️ Erro de conexão: ${err.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Buscar';
+    }
+  }
+
+  // Mostrar tela inicial amigável
+  document.getElementById('videoGrid').innerHTML = `
+    <div class="state-box" style="grid-column:1/-1">
+      <span class="icon">🚀</span>
+      <h3>Pronto para encontrar tendências!</h3>
+      <p>Digite uma hashtag ou escolha uma sugestão acima e clique em <strong>Buscar</strong></p>
+    </div>`;
+</script>
+</body>
+</html>
