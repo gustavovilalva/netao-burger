@@ -437,6 +437,7 @@
           <div class="stat">💬 <strong>${fmt(v.comments)}</strong></div>
           ${v.shares ? `<div class="stat">↗️ <strong>${fmt(v.shares)}</strong></div>` : ''}
         </div>
+        ${v.pub_date ? `<div class="stat" style="font-size:0.72rem;color:var(--muted)">📅 ${v.pub_date}</div>` : ''}
         <a class="btn-view" href="${v.url}" target="_blank" rel="noopener noreferrer">
           ▶ Ver no TikTok
         </a>
