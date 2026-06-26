@@ -22,6 +22,35 @@ def index():
     return render_template("index.html", hashtags=DEFAULT_HASHTAGS)
 
 
+@app.route("/api/debug/tiktok")
+def debug_tiktok():
+    """Mostra campos disponíveis no primeiro vídeo da API do TikTok."""
+    hashtag = request.args.get("hashtag", "burger")
+    if not RAPIDAPI_KEY:
+        return jsonify({"error": "Sem API key"}), 400
+    url = "https://tiktok-scraper7.p.rapidapi.com/feed/search"
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com"
+    }
+    params = {"keywords": hashtag, "count": "3", "cursor": "0", "region": "BR", "publish_time": "0", "sort_type": "0"}
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=15)
+        data = resp.json()
+        videos = data.get("data", {}).get("videos", [])
+        # Retorna apenas o primeiro vídeo com todos os campos para debug
+        first = videos[0] if videos else {}
+        return jsonify({
+            "aweme_id": first.get("aweme_id"),
+            "share_url": first.get("share_url"),
+            "author_unique_id": first.get("author", {}).get("unique_id"),
+            "video_share_url": first.get("video", {}).get("share_url"),
+            "all_keys": list(first.keys())
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 @app.route("/api/debug/instagram")
 def debug_instagram():
     """Mostra resposta bruta da API do Instagram para debug."""
@@ -129,19 +158,29 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
             duration_raw = video_info.get("duration", item.get("duration", 0))
             duration = duration_raw // 1000 if duration_raw > 1000 else duration_raw
 
+            # URL: prioriza share_url da API, depois constrói manualmente
+            aweme_id = item.get("aweme_id", "")
+            unique_id = author.get("unique_id", "")
+            share_url = (
+                item.get("share_url") or
+                item.get("video", {}).get("share_url") or
+                (f"https://www.tiktok.com/@{unique_id}/video/{aweme_id}" if unique_id and aweme_id else "") or
+                (f"https://www.tiktok.com/video/{aweme_id}" if aweme_id else "")
+            )
+
             videos.append({
                 "platform": "TikTok",
                 "platform_icon": "tiktok",
-                "id": item.get("aweme_id", ""),
+                "id": aweme_id,
                 "description": item.get("desc", "Sem descrição")[:200],
                 "likes":    likes,
                 "views":    views,
                 "comments": comments,
                 "shares":   shares,
                 "thumbnail": thumbnail,
-                "url": f"https://vm.tiktok.com/t/{item.get('aweme_id', '')}/" if not author.get('unique_id') else f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{item.get('aweme_id', '')}",
+                "url": share_url,
                 "author": author.get("nickname", ""),
-                "author_handle": f"@{author.get('unique_id', '')}",
+                "author_handle": f"@{unique_id}",
                 "duration": duration,
             })
 
