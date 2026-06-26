@@ -408,19 +408,33 @@
   }
 
   function renderCard(v) {
-    const thumb = v.thumbnail
-      ? `<img src="${v.thumbnail}" loading="lazy" alt="" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>🍔</div>'">`
-      : `<div class="thumb-placeholder">🍔</div>`;
     const dur = fmtDur(v.duration);
     const init = (v.author || '?').charAt(0).toUpperCase();
 
+    // Se tiver URL de reprodução direta, usa player embutido
+    const mediaSection = v.play_url
+      ? `<div class="card-thumb">
+           <video
+             src="${v.play_url}"
+             poster="${v.thumbnail || ''}"
+             controls
+             playsinline
+             preload="none"
+             style="width:100%;height:100%;object-fit:cover;display:block;"
+           ></video>
+           <span class="platform-badge">▶ TikTok</span>
+         </div>`
+      : `<div class="card-thumb">
+           ${v.thumbnail
+             ? `<img src="${v.thumbnail}" loading="lazy" alt="" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>🍔</div>'">`
+             : `<div class="thumb-placeholder">🍔</div>`}
+           <span class="platform-badge">▶ TikTok</span>
+           ${dur ? `<span class="duration-badge">${dur}</span>` : ''}
+         </div>`;
+
     return `
     <div class="video-card">
-      <div class="card-thumb">
-        ${thumb}
-        <span class="platform-badge">▶ TikTok</span>
-        ${dur ? `<span class="duration-badge">${dur}</span>` : ''}
-      </div>
+      ${mediaSection}
       <div class="card-body">
         <div class="card-author">
           <div class="avatar">${init}</div>
@@ -437,9 +451,9 @@
           <div class="stat">💬 <strong>${fmt(v.comments)}</strong></div>
           ${v.shares ? `<div class="stat">↗️ <strong>${fmt(v.shares)}</strong></div>` : ''}
         </div>
-        ${v.pub_date ? `<div class="stat" style="font-size:0.72rem;color:var(--muted)">📅 ${v.pub_date}</div>` : ''}
+        ${v.pub_date ? `<div style="font-size:0.72rem;color:var(--muted)">📅 ${v.pub_date}</div>` : ''}
         <a class="btn-view" href="${v.url}" target="_blank" rel="noopener noreferrer">
-          ▶ Ver no TikTok
+          Abrir no TikTok →
         </a>
       </div>
     </div>`;
