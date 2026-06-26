@@ -119,8 +119,8 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
         "count": str(count),
         "cursor": "0",
         "region": "BR",
-        "publish_time": "0",
-        "sort_type": "0"
+        "publish_time": "180",  # últimos 6 meses
+        "sort_type": "1"        # ordenar por curtidas
     }
 
     try:
@@ -158,15 +158,21 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
             duration_raw = video_info.get("duration", item.get("duration", 0))
             duration = duration_raw // 1000 if duration_raw > 1000 else duration_raw
 
-            # URL: prioriza share_url da API, depois constrói manualmente
+            # URL: usa o formato mais estável do TikTok
             aweme_id = item.get("aweme_id", "")
             unique_id = author.get("unique_id", "")
             share_url = (
                 item.get("share_url") or
-                item.get("video", {}).get("share_url") or
-                (f"https://www.tiktok.com/@{unique_id}/video/{aweme_id}" if unique_id and aweme_id else "") or
-                (f"https://www.tiktok.com/video/{aweme_id}" if aweme_id else "")
+                f"https://www.tiktok.com/@{unique_id}/video/{aweme_id}"
             )
+
+            # Data de publicação
+            create_time = item.get("create_time", 0)
+            from datetime import datetime
+            try:
+                pub_date = datetime.fromtimestamp(create_time).strftime("%d/%m/%Y") if create_time else ""
+            except Exception:
+                pub_date = ""
 
             videos.append({
                 "platform": "TikTok",
@@ -182,6 +188,7 @@ def search_tiktok(hashtag: str, count: int = 20) -> dict:
                 "author": author.get("nickname", ""),
                 "author_handle": f"@{unique_id}",
                 "duration": duration,
+                "pub_date": pub_date,
             })
 
         # Ordenar por curtidas
